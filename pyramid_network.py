@@ -84,7 +84,7 @@ class PyramidNet(nn.Module):
         losses = [self.loss(x, y) for x, y in zip(multiscale_prediction, multiscale_targets)]
         # here sum will call overridden + operator
         return sum(losses)
-
+# todo mask loss
 
 if __name__ == '__main__':
     net = PyramidNet(5)
