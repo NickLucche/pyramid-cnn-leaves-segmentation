@@ -19,6 +19,8 @@ parser.add_argument('--log-interval', type=int, default=10,
                     help='how many batches to wait before logging training status')
 parser.add_argument('-d', '--dataset-filepath', help='Filepath of the dataset to load', required=True)
 parser.add_argument('--predictions-number', help='Number of predictions the network will do at different scales', default=5)
+parser.add_argument('-s', '--save-path', help='Where to save model checkpoints', required=True)
+parser.add_argument('-l', '--load-model', help='Where to load checkpoint of model from')
 # todo save model
 
 def parse_args():

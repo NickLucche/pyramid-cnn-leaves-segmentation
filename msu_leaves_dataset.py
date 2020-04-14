@@ -64,7 +64,7 @@ class MSUDenseLeavesDataset(Dataset):
         # labels multiscale resizing
         targets, masks = multiscale_target(self.multiscale_loss_targets, label, mask)
         # reverse order of multiscale labels (long cast for CE loss)
-        return image, [torch.from_numpy(t).long() for t in reversed(targets)], [torch.from_numpy(m) for m in reversed(masks)]
+        return image, [torch.from_numpy(t).unsqueeze(0) for t in reversed(targets)], [torch.from_numpy(m).unsqueeze(0) for m in reversed(masks)]
 
 # normal multiscale does not achieve same results
 # def multiscale(n_scaling, target, mask):

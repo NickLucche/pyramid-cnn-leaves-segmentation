@@ -31,7 +31,9 @@ class PyramidNet(nn.Module):
         self.downsample_blocks = nn.ModuleList(self.downsample_blocks)
         self.pre_loss_convs = nn.ModuleList(self.pre_loss_convs)
 
-        self.loss = nn.CrossEntropyLoss(weight=loss_weights)  # softmax inside todo maybe BCEloss?
+        self.loss = nn.BCEWithLogitsLoss(pos_weight=loss_weights)
+        # self.loss = nn.CrossEntropyLoss(weight=loss_weights)  # softmax inside todo maybe BCEloss?
+
 
     def forward(self, x):
         x = self.conv1(x)
@@ -89,12 +91,12 @@ class PyramidNet(nn.Module):
 # todo mask loss
 
 if __name__ == '__main__':
-    net = PyramidNet(5, loss_weights=torch.tensor([.2, .8]))
-    print(net)
+    net = PyramidNet(5, loss_weights=torch.tensor([2]))
+    # print(net)
 
     x = torch.randn((2, 3, 128, 128), requires_grad=True)
-    targets = [torch.ones((2, s, s), requires_grad=True).long() for s in [8, 16, 32, 64, 128]]
-    masks = [torch.ones((2, s, s), requires_grad=True) for s in [8, 16, 32, 64, 128]]
+    targets = [torch.ones((2, s, s), requires_grad=True).unsqueeze(1) for s in [8, 16, 32, 64, 128]]
+    masks = [torch.ones((2,s, s), requires_grad=True).unsqueeze(1) for s in [8, 16, 32, 64, 128]]
     ys = net(x)
     [print(y.shape) for y in ys]
     [print(y.shape) for y in targets]
