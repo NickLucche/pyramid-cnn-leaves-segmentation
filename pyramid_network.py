@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class PyramidNet(nn.Module):
 
-    def __init__(self, n_layers, input_image_channels=3, output_channels=1):
+    def __init__(self, n_layers, input_image_channels=3, output_channels=1, loss_weights=None):
         super(PyramidNet, self).__init__()
         # fixed number of channels throughout the network
         self.no_channels = 32
@@ -30,7 +30,8 @@ class PyramidNet(nn.Module):
         self.upsample_blocks = nn.ModuleList(self.upsample_blocks)
         self.downsample_blocks = nn.ModuleList(self.downsample_blocks)
         self.pre_loss_convs = nn.ModuleList(self.pre_loss_convs)
-        self.loss = nn.CrossEntropyLoss()  # softmax inside todo maybe BCEloss?
+
+        self.loss = nn.CrossEntropyLoss(weight=loss_weights)  # softmax inside todo maybe BCEloss?
 
     def forward(self, x):
         x = self.conv1(x)
@@ -80,21 +81,23 @@ class PyramidNet(nn.Module):
 
     # Computes multi-scale loss given a list of predictions and a list
     # of matching size targets; loss at different scale is summed up.
-    def compute_multiscale_loss(self, multiscale_prediction, multiscale_targets):
-        losses = [self.loss(x, y) for x, y in zip(multiscale_prediction, multiscale_targets)]
+    # A mask is applied to the loss so that unlabeled pixels are ignored
+    def compute_multiscale_loss(self, multiscale_prediction, multiscale_targets, multiscale_masks):
+        losses = [self.loss(x*mask, y) for x, y, mask in zip(multiscale_prediction, multiscale_targets, multiscale_masks)]
         # here sum will call overridden + operator
         return sum(losses)
 # todo mask loss
 
 if __name__ == '__main__':
-    net = PyramidNet(5)
+    net = PyramidNet(5, loss_weights=torch.tensor([.2, .8]))
     print(net)
 
-    x = torch.randn((2, 3, 128, 128))
-    targets = [torch.zeros((2, s, s)).long() for s in [8, 16, 32, 64, 128]]
+    x = torch.randn((2, 3, 128, 128), requires_grad=True)
+    targets = [torch.ones((2, s, s), requires_grad=True).long() for s in [8, 16, 32, 64, 128]]
+    masks = [torch.ones((2, s, s), requires_grad=True) for s in [8, 16, 32, 64, 128]]
     ys = net(x)
     [print(y.shape) for y in ys]
     [print(y.shape) for y in targets]
 
-    loss = net.compute_multiscale_loss(ys, targets)
+    loss = net.compute_multiscale_loss(ys, targets, masks)
     loss.backward()

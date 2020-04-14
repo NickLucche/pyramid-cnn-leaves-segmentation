@@ -13,7 +13,7 @@ class MSUDenseLeavesDataset(Dataset):
 
     def __init__(self, filepath, num_targets, random_augmentation=False, augm_probability=0.2):
         self.filepath = filepath
-        # each sample is made of image-labels-mask
+        # each sample is made of image-labels-mask (important to sort by name!)
         self.images = sorted(glob.glob(filepath + '*_img.png'))
         self.labels = sorted(glob.glob(filepath + '*_label.png'))
         self.masks = sorted(glob.glob(filepath + '*_mask.png'))
@@ -32,7 +32,7 @@ class MSUDenseLeavesDataset(Dataset):
         mask = cv2.imread(self.masks[item])
         # HxWxC-->CxHxW, bgr->rgb and tensor transformation
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = torch.from_numpy(image.transpose(2, 0, 1) / 255.)
+        image = torch.from_numpy(image.transpose(2, 0, 1) / 255.).float()
 
         # todo bug in generating dataset made following map have 3 (identical)
         #  channels instead of 1
@@ -61,9 +61,10 @@ class MSUDenseLeavesDataset(Dataset):
                 label = rotate(label, angle)
                 mask = rotate(mask, angle)
 
-        # todo labels multiscale resizing
+        # labels multiscale resizing
         targets, masks = multiscale_target(self.multiscale_loss_targets, label, mask)
-        return image, targets, masks
+        # reverse order of multiscale labels (long cast for CE loss)
+        return image, [torch.from_numpy(t).long() for t in reversed(targets)], [torch.from_numpy(m) for m in reversed(masks)]
 
 # normal multiscale does not achieve same results
 # def multiscale(n_scaling, target, mask):
@@ -131,6 +132,8 @@ if __name__ == '__main__':
     img = img.astype(np.uint8)
     print(img.shape)
     for target, mask in zip(l, m):
+        target = target.numpy()
+        mask = mask.numpy()
         print(target.shape, mask.shape)
         cv2.imshow('imga', target)
         cv2.imshow('imgb', mask)
