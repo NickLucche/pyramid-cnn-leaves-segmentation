@@ -22,9 +22,10 @@ def generate_patches_from_image(image, segm_map, mask, patch_size, filename, thr
             mask_patch = mask[y - patch_size[0]:y, x - patch_size[1]:x]
             if np.count_nonzero(mask_patch) > threshold:
                 # write to disk image-labels-mask
-                image_patch = image[y - patch_size[0]:y, x - patch_size[1]:x]
+                image_patch = image[y - patch_size[0]:y, x - patch_size[1]:x, :]
                 label_patch = segm_map[y - patch_size[0]:y, x - patch_size[1]:x]
                 # print(f'Writing to: {filename}_{patch_no}_img.png')
+                # print(image_patch.shape, mask_patch.shape, label_patch.shape)
                 cv2.imwrite(f'{filename}_{patch_no}_img.png', image_patch)
                 cv2.imwrite(f'{filename}_{patch_no}_mask.png', (mask_patch*255).astype(np.uint8))
                 cv2.imwrite(f'{filename}_{patch_no}_label.png', (label_patch*255).astype(np.uint8))
@@ -64,7 +65,7 @@ if __name__ == '__main__':
     if not os.path.exists(os.path.join(dataset, dirname)):
         original_umask = os.umask(0)
         os.makedirs(os.path.join(dataset, dirname+'/'), original_umask)
-    subdir = 'train'
+    subdir = 'val'
     # assume ~1/4 of image has to be labeled for patch threshold
     threshold = 3800
     print(subdir, dataset, dirname, os.path.join(dataset, dirname))
