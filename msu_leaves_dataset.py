@@ -1,5 +1,5 @@
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import cv2
 import glob
 import numpy as np
@@ -126,14 +126,17 @@ if __name__ == '__main__':
     dataset = MSUDenseLeavesDataset('/home/nick/datasets/DenseLeaves/leaves_edges/', num_targets=5,
                                     random_augmentation=False,
                                     augm_probability=1.0)
+    dataloader = DataLoader(dataset, batch_size=24)
+
+
     img, l, m = dataset[10]
     print(img.shape)  # , l.shape, m.shape)
     img = img.permute(1, 2, 0).numpy() * 255
     img = img.astype(np.uint8)
     print(img.shape)
     for target, mask in zip(l, m):
-        target = target.numpy()
-        mask = mask.numpy()
+        target = target.squeeze().numpy()
+        mask = mask.squeeze().numpy()
         print(target.shape, mask.shape)
         cv2.imshow('imga', target)
         cv2.imshow('imgb', mask)

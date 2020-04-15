@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from pyramid_network import PyramidNet
 from tqdm import tqdm
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 def evaluate(net, eval_dataset):
     net.eval()
@@ -24,6 +24,7 @@ def evaluate(net, eval_dataset):
             print('Eval Loss:', loss.item())
             # pixel-wise accuracy of
             for p, t, m in zip(predictions, targets, masks):
+                # TODO PREDICTIONS NEED TO BE SQUASHED
                 pixel_acc = (p * m) * t
                 acc = pixel_acc.sum() / t.sum()
                 print(f"Accuracy at scale ({p.shape[2]}x{p.shape[3]}) is {acc} ({pixel_acc.sum()}/{t.sum()} edge pixels)")
@@ -34,8 +35,8 @@ def evaluate(net, eval_dataset):
 if __name__ == '__main__':
     args = parse_args()
 
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
+    # torch.manual_seed(args.seed)
+    # np.random.seed(args.seed)
 
     # create dataloader
     dataset = MSUDenseLeavesDataset(args.dataset_filepath, args.predictions_number)
@@ -43,29 +44,33 @@ if __name__ == '__main__':
 
     eval_dataloader = DataLoader(MSUDenseLeavesDataset(args.dataset_filepath[:-1] + '_eval/', args.predictions_number),
                                  shuffle=True, batch_size=24)
-    # todo totally arbitrary weights (SHOULD USE DIFFERENT WEIGHTS @ DIFFERENT SCALES!)
-    model = PyramidNet(n_layers=5, loss_weights=torch.tensor([10]))
+    # todo totally arbitrary weights
+    model = PyramidNet(n_layers=5, loss_weights=[torch.tensor([1.0])]*5)#, torch.tensor([1.9]), torch.tensor([3.9]),
+                                                 # torch.tensor([8]), torch.tensor([10])])
     if args.load_model:
         model.load_state_dict(torch.load(args.load_model))
     model = model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters())
+    # optimizer = torch.optim.SGD(model.parameters(), 0.01, momentum=0.9)
 
     for epoch in range(0, args.epochs):
+        viz=False
         # samples made of image-targets-masks
-        for batch_no, samples in tqdm(enumerate(dataloader)):
+        for batch_no, (input_batch, targets, masks) in enumerate(dataloader):
             optimizer.zero_grad()
-            input_batch = samples[0].to(device)
-            targets = samples[1]
+            input_batch = input_batch.to(device)
             targets = [t.to(device) for t in targets]
-            masks = samples[1]
             masks = [t.to(device) for t in masks]
             # print("Input shape:", input_batch.shape)
             predictions = model(input_batch)
-            # print(len(outputs), 'Output:', [o.shape for o in outputs], '\nTargets:', len(targets), targets[0].shape)
-            # heads_losses = model.compute_losses(outputs, targets)
-            # loss = multiloss(heads_losses, task_weights)
 
+            if batch_no % 10 == 0:
+                print('\n',predictions[-1].max().item(), predictions[-1].min().item(), predictions[-1].sum().item())
+                print('\n',torch.sigmoid(predictions[-1]).max().item(), torch.sigmoid(predictions[-1]).min().item(),
+                      torch.sigmoid(predictions[-1]).sum().item())
+            # print(targets[0].max().item(), targets[0].min().item(), targets[0].sum().item())
+            # print(masks[0].max().item(), masks[0].min().item(), masks[0].sum().item())
             # for i in range(len(predictions)):
             #     print(predictions[i].shape, targets[i].shape, masks[i].shape)
             loss = model.compute_multiscale_loss(predictions, targets, masks)
@@ -75,9 +80,25 @@ if __name__ == '__main__':
 
             if batch_no % args.log_interval == 0:
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch, batch_no * len(samples), len(dataset),
-                           100. * batch_no / len(dataloader), loss.item()))
+                    epoch, batch_no*24, len(dataset),
+                           100. * batch_no * 24 / len(dataloader), loss.item()))
 
                 # evaluate(model, eval_dataloader)
 
             torch.save(model.state_dict(), args.save_path+'pyramid_net.pt')
+            # visualize result
+            if epoch > 30 and not viz:
+                viz = True
+                with torch.no_grad():
+                    predictions = model(input_batch)
+                    p = predictions[-1][10, :, :, :]
+                    # p = (torch.nn.functional.sigmoid(p) > .5).float()
+                    # avoid using sigmoid, it's the same thing
+                    print(p.shape, p.max().item(), p.min().item(), p.sum().item())
+                    # p = (p > 0.).float()
+                    p = p.squeeze().cpu().numpy().astype(np.float32)
+                    print(p.shape, np.amax(p), np.sum(p), np.amin(p))
+
+                    plt.imshow(p, cmap='Greys')
+                    plt.show()
+

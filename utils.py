@@ -13,7 +13,7 @@ def set_gpu_number(n_gpu):
     device = torch.device("cuda:{}".format(n_gpu)) if torch.cuda.is_available() else torch.device("cpu")
 
 parser = ArgumentParser()
-parser.add_argument('-e', '--epochs', help='Number of epochs the training will be run for', default=20)
+parser.add_argument('-e', '--epochs', help='Number of epochs the training will be run for', default=20, type=int)
 parser.add_argument('--seed', type=int, default=7, help='random seed (default: 7)')
 parser.add_argument('--log-interval', type=int, default=10,
                     help='how many batches to wait before logging training status')

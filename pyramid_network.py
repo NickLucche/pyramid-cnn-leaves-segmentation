@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
 
 
 class PyramidNet(nn.Module):
@@ -21,7 +22,7 @@ class PyramidNet(nn.Module):
             self.upsample_blocks.append(self._create_rc_block(self.no_rc_per_block))
             self.downsample_blocks.append(self._create_rc_block(self.no_rc_per_block))
             self.pre_loss_convs.append(nn.Sequential(
-                nn.ReLU(inplace=True),
+                nn.ReLU(inplace=False),
                 nn.Conv2d(self.no_channels, output_channels, 3, padding=1)  # todo 1x1 conv instead?
             ))
         # add one more upsample block
@@ -31,18 +32,19 @@ class PyramidNet(nn.Module):
         self.downsample_blocks = nn.ModuleList(self.downsample_blocks)
         self.pre_loss_convs = nn.ModuleList(self.pre_loss_convs)
 
-        self.loss = nn.BCEWithLogitsLoss(pos_weight=loss_weights)
+        # have one loss per output
+        self.losses = [nn.BCEWithLogitsLoss(pos_weight=lw, reduction='none') for lw in loss_weights]
+        self.losses = nn.ModuleList(self.losses)
         # self.loss = nn.CrossEntropyLoss(weight=loss_weights)  # softmax inside todo maybe BCEloss?
-
 
     def forward(self, x):
         x = self.conv1(x)
 
-        # todo downsample blocks take as input prev step and upsample one as in unet
+        # downsample blocks take as input prev step and upsample one as in unet
         downsampled = []
-        for layer in self.downsample_blocks:
+        for i, layer in enumerate(self.downsample_blocks):
             x = layer(x)
-            downsampled.append(x)  # todo graph dependency may blow up gpu?
+            downsampled.append(x)
             # max pooling must be done separately so that x can be re-used later
             x = nn.MaxPool2d(2, stride=2)(x)
 
@@ -61,13 +63,14 @@ class PyramidNet(nn.Module):
             multiscale_predictions.append(self.pre_loss_convs[i](x))
             x = nn.Upsample(scale_factor=2.0, mode='nearest')(x)
 
+        # no need to squash values in between 0-1, sigmoid is inside loss
         return multiscale_predictions
 
     # rc stands for ReLU followed by a 3x3 conv as depicted in paper
     def _create_rc_block(self, number_of_rc):
         block = []
         for i in range(number_of_rc):
-            block.append(nn.ReLU(inplace=True))
+            block.append(nn.LeakyReLU(inplace=False))
             block.append(nn.Conv2d(self.no_channels, self.no_channels, (3, 3), padding=1))
 
         return nn.Sequential(*block)
@@ -85,21 +88,27 @@ class PyramidNet(nn.Module):
     # of matching size targets; loss at different scale is summed up.
     # A mask is applied to the loss so that unlabeled pixels are ignored
     def compute_multiscale_loss(self, multiscale_prediction, multiscale_targets, multiscale_masks):
-        losses = [self.loss(x*mask, y) for x, y, mask in zip(multiscale_prediction, multiscale_targets, multiscale_masks)]
+        # todo reduction logic: mask is applied afterwards on the non-reduced loss
+        losses = [torch.sum(self.losses[i](x, y) * mask) / torch.sum(mask) for i, (x, y, mask) in
+                  enumerate(zip(multiscale_prediction, multiscale_targets, multiscale_masks))]
         # here sum will call overridden + operator
         return sum(losses)
-# todo mask loss
+
 
 if __name__ == '__main__':
-    net = PyramidNet(5, loss_weights=torch.tensor([2]))
+    net = PyramidNet(5, loss_weights=[torch.tensor([0.1]), torch.tensor([0.4]), torch.tensor([1.]),
+                                      torch.tensor([4]), torch.tensor([10])])
     # print(net)
-
-    x = torch.randn((2, 3, 128, 128), requires_grad=True)
-    targets = [torch.ones((2, s, s), requires_grad=True).unsqueeze(1) for s in [8, 16, 32, 64, 128]]
-    masks = [torch.ones((2,s, s), requires_grad=True).unsqueeze(1) for s in [8, 16, 32, 64, 128]]
-    ys = net(x)
-    [print(y.shape) for y in ys]
-    [print(y.shape) for y in targets]
-
-    loss = net.compute_multiscale_loss(ys, targets, masks)
-    loss.backward()
+    with torch.no_grad():
+        x = torch.randn((2, 3, 128, 128), requires_grad=True)
+        targets = [torch.ones((2, s, s), requires_grad=True).unsqueeze(1) for s in [8, 16, 32, 64, 128]]
+        masks = [torch.ones((2, s, s), requires_grad=True).unsqueeze(1) for s in [8, 16, 32, 64, 128]]
+        ys = net(x)
+        [print(y.shape) for y in ys]
+        [print(y.shape) for y in targets]
+        for y in ys:
+            print(y.max().item(), y.min().item())
+            plt.imshow(y[0].squeeze().numpy(), cmap='gray')
+            plt.show()
+        loss = net.compute_multiscale_loss(ys, targets, masks)
+        # loss.backward()
