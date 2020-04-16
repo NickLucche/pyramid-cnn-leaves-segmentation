@@ -21,6 +21,7 @@ parser.add_argument('-d', '--dataset-filepath', help='Filepath of the dataset to
 parser.add_argument('--predictions-number', help='Number of predictions the network will do at different scales', default=5)
 parser.add_argument('-s', '--save-path', help='Where to save model checkpoints', required=True)
 parser.add_argument('-l', '--load-model', help='Where to load checkpoint of model from')
+parser.add_argument('-v', '--viz-results', help='Toggle results visualization', action='store_true', default=False)
 # todo save model
 
 def parse_args():

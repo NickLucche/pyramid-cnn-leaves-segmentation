@@ -35,7 +35,7 @@ class PyramidNet(nn.Module):
         # have one loss per output
         self.losses = [nn.BCEWithLogitsLoss(pos_weight=lw, reduction='none') for lw in loss_weights]
         self.losses = nn.ModuleList(self.losses)
-        # self.loss = nn.CrossEntropyLoss(weight=loss_weights)  # softmax inside todo maybe BCEloss?
+        # self.loss = nn.CrossEntropyLoss(weight=loss_weights)  # softmax inside
 
     def forward(self, x):
         x = self.conv1(x)

@@ -22,9 +22,9 @@ def evaluate(net, eval_dataset):
             # for i in range(len(predictions)):
             #  print(predictions[i].shape, targets[i].shape, masks[i].shape)
             print('Eval Loss:', loss.item())
-            # pixel-wise accuracy of
+            # pixel-wise accuracy of multiscale predictions (edges-only)
             for p, t, m in zip(predictions, targets, masks):
-                # TODO PREDICTIONS NEED TO BE SQUASHED
+                p = (p>0.).float()
                 pixel_acc = (p * m) * t
                 acc = pixel_acc.sum() / t.sum()
                 print(f"Accuracy at scale ({p.shape[2]}x{p.shape[3]}) is {acc} ({pixel_acc.sum()}/{t.sum()} edge pixels)")
@@ -35,8 +35,8 @@ def evaluate(net, eval_dataset):
 if __name__ == '__main__':
     args = parse_args()
 
-    # torch.manual_seed(args.seed)
-    # np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
 
     # create dataloader
     dataset = MSUDenseLeavesDataset(args.dataset_filepath, args.predictions_number)
@@ -54,8 +54,8 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters())
     # optimizer = torch.optim.SGD(model.parameters(), 0.01, momentum=0.9)
 
+    viz = args.viz_results
     for epoch in range(0, args.epochs):
-        viz=False
         # samples made of image-targets-masks
         for batch_no, (input_batch, targets, masks) in enumerate(dataloader):
             optimizer.zero_grad()
@@ -83,19 +83,18 @@ if __name__ == '__main__':
                     epoch, batch_no*24, len(dataset),
                            100. * batch_no * 24 / len(dataloader), loss.item()))
 
-                # evaluate(model, eval_dataloader)
+                evaluate(model, eval_dataloader)
 
             torch.save(model.state_dict(), args.save_path+'pyramid_net.pt')
             # visualize result
-            if epoch > 30 and not viz:
-                viz = True
+            if viz:
                 with torch.no_grad():
                     predictions = model(input_batch)
                     p = predictions[-1][10, :, :, :]
                     # p = (torch.nn.functional.sigmoid(p) > .5).float()
                     # avoid using sigmoid, it's the same thing
                     print(p.shape, p.max().item(), p.min().item(), p.sum().item())
-                    # p = (p > 0.).float()
+                    p = (p > 0.).float()
                     p = p.squeeze().cpu().numpy().astype(np.float32)
                     print(p.shape, np.amax(p), np.sum(p), np.amin(p))
 
