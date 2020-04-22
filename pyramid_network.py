@@ -75,20 +75,11 @@ class PyramidNet(nn.Module):
 
         return nn.Sequential(*block)
 
-    # def _create_upsample_block(self, number_of_rc):
-    #     block = []
-    #     for i in range(number_of_rc):
-    #         block.append(nn.ReLU(inplace=True))
-    #         block.append(nn.Conv2d(self.no_channels, self.no_channels, (3, 3), padding=1))
-    #
-    #     block.append(nn.Upsample(scale_factor=2.0, mode='nearest'))
-    #     return nn.Sequential(*block)
-
     # Computes multi-scale loss given a list of predictions and a list
     # of matching size targets; loss at different scale is summed up.
-    # A mask is applied to the loss so that unlabeled pixels are ignored
+    # A mask is applied to the loss so that unlabeled pixels are ignored.
     def compute_multiscale_loss(self, multiscale_prediction, multiscale_targets, multiscale_masks):
-        # todo reduction logic: mask is applied afterwards on the non-reduced loss
+        # reduction logic: mask is applied afterwards on the non-reduced loss
         losses = [torch.sum(self.losses[i](x, y) * mask) / torch.sum(mask) for i, (x, y, mask) in
                   enumerate(zip(multiscale_prediction, multiscale_targets, multiscale_masks))]
         # here sum will call overridden + operator

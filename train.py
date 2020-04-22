@@ -45,8 +45,8 @@ if __name__ == '__main__':
     eval_dataloader = DataLoader(MSUDenseLeavesDataset(args.dataset_filepath[:-1] + '_eval/', args.predictions_number),
                                  shuffle=True, batch_size=24)
     # todo totally arbitrary weights
-    model = PyramidNet(n_layers=5, loss_weights=[torch.tensor([1.0])]*5)#, torch.tensor([1.9]), torch.tensor([3.9]),
-                                                 # torch.tensor([8]), torch.tensor([10])])
+    model = PyramidNet(n_layers=5, loss_weights=[torch.tensor([1.0])]*5)#, torch.tensor([1.1]), torch.tensor([1.8]),
+                                                 # torch.tensor([3.2]), torch.tensor([9.0])])
     if args.load_model:
         model.load_state_dict(torch.load(args.load_model))
     model = model.to(device)
