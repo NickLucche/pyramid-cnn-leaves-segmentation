@@ -40,9 +40,20 @@ by passing a different tensor through the `loss_weights` parameter to the actual
 implemented inside `pyramid_network.py`.
 
 ## Pre-trained model
-I also provide a pretty hastily pre-trained model (in the root of this repo since it's very small)
-which reached a level of accuracy which was enough for the need of my application 
+I also provide a pretty hastily pre-trained model (already in the root of this repo since it's very small)
+reaching a level of accuracy which was enough for the need of my application 
 and of which I report some results in the following section. 
+I only needed to have a rough estimate of the leaves contours so I stopped pretty early, I 
+suggest you go on training on more (augmented) data to reach better results, for sure.
 
-## Results
+## Visual Results
+>multiscale predictions-original_image-label (at max resolution)
+----
+![](assets/test_1.png)
+![](assets/test_2.png)
+![](assets/test_3.png)
+![](assets/test_4.png)
+![](assets/test_5.png)
 
+Random image I took:
+![](assets/homemade.png)

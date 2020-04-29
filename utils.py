@@ -22,6 +22,7 @@ parser.add_argument('--predictions-number', help='Number of predictions the netw
 parser.add_argument('-s', '--save-path', help='Where to save model checkpoints', required=True)
 parser.add_argument('-l', '--load-model', help='Where to load checkpoint of model from')
 parser.add_argument('-v', '--viz-results', help='Toggle results visualization', action='store_true', default=False)
+parser.add_argument('-i', '--image', help='Provide a custom image for testing net', type=str)
 # todo save model
 
 def parse_args():
