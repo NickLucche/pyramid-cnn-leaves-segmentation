@@ -11,7 +11,7 @@ As an additional note, my implementation should be taken as 'loose' in the sense
 interpretation but this is by no mean a direct 'porting' of the official repo provided by the
 very author of the paper 'Daniel D. Morris', which I link here https://github.com/dmorris0/PyramidCNN
 in appreciation of the work done by the author. I didn't make use of the resources provided,
-as I don't enjoy MATLAB very much (sorry! :stuck_out_tongue_closed_eyes :stuck_out_tongue_closed_eyes:) 
+as I don't enjoy MATLAB very much (sorry! :stuck_out_tongue_closed_eyes:) 
 but definitely do drop a star to the repo if it has been useful to you!
 ___
 ## Usage
