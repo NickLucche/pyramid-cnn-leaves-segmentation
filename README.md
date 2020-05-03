@@ -4,9 +4,9 @@ This repo contains my implementation of the network presented in the paper [A Py
 using the popular DL framework PyTorch.
 
 Here's the architecture of the network as presented in the aforementioned paper:
-<div style="text-align:center">
+<p align="center">
   <img src="assets/pyramid-cnn.png" width="400">
-</div>
+</p>
 
 
 As an additional note, my implementation should be taken as 'loose' in the sense that I followed most of the design choices presented in the paper by my own
