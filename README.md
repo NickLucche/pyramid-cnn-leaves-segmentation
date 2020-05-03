@@ -4,7 +4,7 @@ This repo contains my implementation of the network presented in the paper [A Py
 using the popular DL framework PyTorch.
 
 Here's the architecture of the network as presented in the aforementioned paper:
-![Pyramid CNN](https://d3i71xaburhd42.cloudfront.net/6e721c1a2af9ef29661b0552a39eea99dda67faf/4-Figure5-1.png "Pyramid CNN Architecture")
+![Pyramid CNN](assets/pyramid-cnn.png "Pyramid CNN Architecture")
 
 
 As an additional note, my implementation should be taken as 'loose' in the sense that I followed most of the design choices presented in the paper by my own
