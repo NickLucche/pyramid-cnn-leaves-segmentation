@@ -1,3 +1,4 @@
+import os
 import cv2
 import torch
 from utils import device
@@ -36,6 +37,7 @@ if __name__ == '__main__':
         # sigmoid + thresholding
         p = (p > 0.).float()
         p = p.squeeze().cpu().numpy().astype(np.float32)
+        cv2.imwrite(os.path.join(args.save_path, 'custom_prediction.png'), (p * 255).astype(np.uint8))
         print(p.shape)
         fix, ax = plt.subplots(1, 2)
 

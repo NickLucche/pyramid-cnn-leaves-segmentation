@@ -6,7 +6,7 @@ import numpy as np
 import random
 import torchvision.transforms.functional as TF
 import torchvision.transforms as transforms
-from numba import jit, njit
+from numba import njit
 
 
 class MSUDenseLeavesDataset(Dataset):
@@ -41,26 +41,33 @@ class MSUDenseLeavesDataset(Dataset):
         # label = torch.from_numpy(label).long()
         # mask = torch.from_numpy(mask).float()
 
-        # todo fix pil transformation
+        # augmentation
         if self.augmentation:
             # augment data randomly
-            if random.random() > 1 - self.probability:
+            if random.random() > (1 - self.probability):
                 # rotate
-                angle = random.randint(-45, 45)
-
+                angle = random.randint(0, 90)
+                flip_rnd = random.random()
+                # print('Rotating about', angle,'angle and additionally flipping with probability', flip_rnd)
                 def rotate(img, angle):
                     img = TF.to_pil_image(img)
                     img = TF.rotate(img, angle)
                     # additionally flip image with some prob
-                    flip = transforms.Compose([transforms.RandomVerticalFlip(0.2),
-                                               transforms.RandomHorizontalFlip(0.4)])
+                    trans = []
+                    if flip_rnd > (1-0.2):
+                        trans.append(transforms.RandomVerticalFlip(1.0))
+                    if flip_rnd > (1-0.4):
+                        trans.append(transforms.RandomHorizontalFlip(1.0))
+                    trans.append(transforms.ToTensor())
+                    flip = transforms.Compose(trans)
 
                     return flip(img)
 
                 image = rotate(image, angle)
-                label = rotate(label, angle)
-                mask = rotate(mask, angle)
+                label = rotate(torch.from_numpy(label).float(), angle).squeeze().numpy()
+                mask = rotate(torch.from_numpy(mask).float(), angle).squeeze().numpy()
 
+        # print((label.shape, mask.shape), (label.dtype, mask.dtype))
         # labels multiscale resizing
         targets, masks = multiscale_target(self.multiscale_loss_targets, label, mask)
         # reverse order of multiscale labels (long cast for CE loss)
@@ -87,10 +94,8 @@ class MSUDenseLeavesDataset(Dataset):
 @njit
 def multiscale_target(n_targets, target, mask):
     # targets = np.empty((self.multiscale_loss_targets, target.shape[0], target.shape[1]))
-    targets = []
-    targets.append(target.astype(np.float32))
-    masks = []
-    masks.append(mask.astype(np.float32))
+    targets = [target.astype(np.float32)]
+    masks = [mask.astype(np.float32)]
     # outputs as many targets as the number of evaluations in the multiscale loss
     parent_target = target.astype(np.float32).copy() # remember to uniform to same type(float32) or numba will complain
     parent_mask = mask.astype(np.float32).copy()
@@ -124,7 +129,7 @@ def multiscale_target(n_targets, target, mask):
 
 if __name__ == '__main__':
     dataset = MSUDenseLeavesDataset('/home/nick/datasets/DenseLeaves/leaves_edges/', num_targets=5,
-                                    random_augmentation=False,
+                                    random_augmentation=True,
                                     augm_probability=1.0)
     dataloader = DataLoader(dataset, batch_size=24)
 
@@ -134,6 +139,8 @@ if __name__ == '__main__':
     img = img.permute(1, 2, 0).numpy() * 255
     img = img.astype(np.uint8)
     print(img.shape)
+    cv2.imshow('img', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+    cv2.waitKey(0)
     for target, mask in zip(l, m):
         target = target.squeeze().numpy()
         mask = mask.squeeze().numpy()
@@ -141,8 +148,6 @@ if __name__ == '__main__':
         cv2.imshow('imga', target)
         cv2.imshow('imgb', mask)
         cv2.waitKey(0)
-    # cv2.imshow('img', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-    # cv2.waitKey(0)
     # cv2.imshow('labels', l.numpy().astype(np.uint8)*255)
     # cv2.waitKey(0)
     # cv2.imshow('mask',  m.numpy().astype(np.uint8)*255)
