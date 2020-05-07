@@ -22,7 +22,8 @@ if __name__ == '__main__':
     model = model.to(device)
 
     og_image = cv2.imread(args.image)
-    og_image = og_image[(og_image.shape[0]-1024)//2:og_image.shape[0]-(og_image.shape[0]-1024)//2, (og_image.shape[1]-1024)//2:og_image.shape[1]-(og_image.shape[1]-1024)//2, :]
+    if og_image.shape[0] > 1024 and og_image.shape[1]>1024:
+        og_image = og_image[(og_image.shape[0]-1024)//2:og_image.shape[0]-(og_image.shape[0]-1024)//2, (og_image.shape[1]-1024)//2:og_image.shape[1]-(og_image.shape[1]-1024)//2, :]
     # resize image or crop patches
     # image = cv2.resize(og_image, (128, 128))
     og_image = cv2.cvtColor(og_image, cv2.COLOR_BGR2RGB)
